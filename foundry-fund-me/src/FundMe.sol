@@ -13,7 +13,7 @@ contract FundMe {
     address[] private s_funders;
 
     address private immutable i_owner;
-    uint256 public constant MINIMUM_USD = 5 * 10 ** 18;
+    uint256 private constant MINIMUM_USD = 5 * 10 ** 18;
     AggregatorV3Interface private s_priceFeed;
     
     constructor(address _priceFeed) {
@@ -48,6 +48,17 @@ contract FundMe {
         require(callSuccess, "Call failed");
     }
 
+    function cheaperWithdraw() public onlyOwner {
+        uint256 funderLength = s_funders.length;
+        for (uint256 funderIndex=0; funderIndex < funderLength; funderIndex++){
+            address funder = s_funders[funderIndex];
+            s_addressToAmountFunded[funder] = 0;
+        }
+        s_funders = new address[](0);
+
+        (bool callSuccess, ) = payable(msg.sender).call{value: address(this).balance}("");
+        require(callSuccess, "Call failed");
+    }
 
     fallback() external payable {
         fund();
@@ -71,5 +82,9 @@ contract FundMe {
 
     function getOwner() public view returns (address) {
         return i_owner;
+    }
+
+    function getMinimumUSD() public pure returns (uint256) {
+        return MINIMUM_USD;
     }
 }
